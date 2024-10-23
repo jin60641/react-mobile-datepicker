@@ -26,7 +26,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
   step,
   onSelect,
   scrollSpeedFactor = DEFAULT_SCROLL_SPEED_FACTOR,
-  scrollMaxDelta = DATE_HEIGHT,
+  scrollSpeedLimit = DATE_HEIGHT,
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const touchY = useRef(0);
@@ -185,7 +185,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
 
 
     // Adjust deltaY to make it more smooth
-    const deltaY = Math.min(scrollMaxDelta, Math.abs(event.deltaY)) * Math.sign(event.deltaY);
+    const deltaY = Math.min(scrollSpeedLimit, Math.abs(event.deltaY)) * Math.sign(event.deltaY);
     const nextTranslateY = stateTranslateY + (deltaY * scrollSpeedFactor);
     
     const direction = deltaY > 0 ? Direction.DOWN : Direction.UP;

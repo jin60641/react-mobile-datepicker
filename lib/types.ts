@@ -17,7 +17,7 @@ export interface DatePickerItemProps {
   step: number,
   onSelect: Function,
   scrollSpeedFactor?: number,
-  scrollMaxDelta?: number,
+  scrollSpeedLimit?: number,
 }
 
 export interface DateConfig extends Pick<DatePickerItemProps, 'format' | 'step'> {
