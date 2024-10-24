@@ -37,7 +37,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
   const moveToTimer = useRef<ReturnType<typeof setTimeout> | void>();
   const [stateTranslateY, setStateTranslateY] = useState(MIDDLE_Y);
   const [dates, setDates] = useState(iniDates({ step, type, value }));
-  const wheelMoveTimer = useRef<ReturnType<typeof setTimeout> | null>(null); 
+  const wheelMoveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [marginTop, setMarginTop] = useState(0);
 
@@ -102,8 +102,8 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     moveTo(currentIndex.current);
   };
 
-  const handleStart = (event: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement> ) => {
-    touchY.current = isTouchEvent(event) ? 
+  const handleStart = (event: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
+    touchY.current = isTouchEvent(event) ?
       event.targetTouches[0].pageY :
       event.pageY;
 
@@ -112,7 +112,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
   };
 
   const handleMove = (event: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
-    const nextTouchY = isTouchEvent(event) ? 
+    const nextTouchY = isTouchEvent(event) ?
       event.targetTouches[0].pageY :
       event.pageY;
 
@@ -187,7 +187,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     // Adjust deltaY to make it more smooth
     const deltaY = Math.min(scrollSpeedLimit, Math.abs(event.deltaY)) * Math.sign(event.deltaY);
     const nextTranslateY = stateTranslateY + (deltaY * scrollSpeedFactor);
-    
+
     const direction = deltaY > 0 ? Direction.DOWN : Direction.UP;
     if (checkIsUpdateDates(direction, nextTranslateY)) {
       moveDateCount.current += direction === Direction.UP ? 1 : -1;
@@ -230,25 +230,25 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
   } as React.CSSProperties;
 
   return (
-      <div className='datepicker-col-1'>
-        <div
-          className='datepicker-viewport'
-          onTouchStart={handleContentTouch}
-          onTouchMove={handleContentTouch}
-          onTouchEnd={handleContentTouch}
-          onMouseDown={handleContentMouseDown}
-          onWheel={handleWheel}
-        >
-          <div className='datepicker-wheel'>
-            <div
-              className={`datepicker-scroll ${isAnimating ? 'active' : ''}`}
-              style={scrollStyle}
-            >
-              {dates.map(renderDatepickerItem)}
-            </div>
+    <div className='datepicker-col-1'>
+      <div
+        className='datepicker-viewport'
+        onTouchStart={handleContentTouch}
+        onTouchMove={handleContentTouch}
+        onTouchEnd={handleContentTouch}
+        onMouseDown={handleContentMouseDown}
+        onWheel={handleWheel}
+      >
+        <div className='datepicker-wheel'>
+          <div
+            className={`datepicker-scroll ${isAnimating ? 'active' : ''}`}
+            style={scrollStyle}
+          >
+            {dates.map(renderDatepickerItem)}
           </div>
         </div>
       </div>
+    </div>
   );
 };
 

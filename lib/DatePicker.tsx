@@ -155,7 +155,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
             onSelect={handleDateSelect}
             scrollSpeedFactor={scrollSpeedFactor}
             scrollSpeedLimit={scrollSpeedLimit}
-            />
+          />
         ))}
       </div>
       {showFooter && (
