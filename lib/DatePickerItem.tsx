@@ -10,6 +10,8 @@ const DATE_HEIGHT = 40;
 const DATE_LENGTH = 10;
 const MIDDLE_INDEX = Math.floor(DATE_LENGTH / 2);
 const MIDDLE_Y = - DATE_HEIGHT * MIDDLE_INDEX;
+const WHEEL_STOP_TIMEOUT_MS = 200;
+const DEFAULT_SCROLL_SPEED_FACTOR = 0.5;
 
 const iniDates = ({ step, type, value }: Pick<DatePickerItemProps, 'step' | 'type' | 'value'>) => Array(...Array(DATE_LENGTH))
   .map((date, index) =>
@@ -23,7 +25,8 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
   format,
   step,
   onSelect,
-  fastWheelMultiplier = 10,
+  scrollSpeedFactor = DEFAULT_SCROLL_SPEED_FACTOR,
+  scrollSpeedLimit = DATE_HEIGHT,
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const touchY = useRef(0);
@@ -34,8 +37,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
   const moveToTimer = useRef<ReturnType<typeof setTimeout> | void>();
   const [stateTranslateY, setStateTranslateY] = useState(MIDDLE_Y);
   const [dates, setDates] = useState(iniDates({ step, type, value }));
-  const [lastScrollTime, setLastScrollTime] = useState(performance.now());
-  const [lastScrollDelta, setLastScrollDelta] = useState(0);
+  const wheelMoveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [marginTop, setMarginTop] = useState(0);
 
@@ -100,49 +102,27 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     moveTo(currentIndex.current);
   };
 
-
-  const handleStart = (event: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement> | React.WheelEvent<HTMLDivElement>) => {
+  const handleStart = (event: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
     touchY.current = isTouchEvent(event) ?
       event.targetTouches[0].pageY :
-      isWheelEvent(event) ? 0 :
-        event.pageY;
+      event.pageY;
 
     translateY.current = stateTranslateY;
     moveDateCount.current = 0;
   };
 
-  const getScrollSpeed = (event: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement> | React.WheelEvent<HTMLDivElement>) => {
-    const isWheel = isWheelEvent(event);
-    /// detect scroll speed
-    const currentScrollTime = performance.now();
-    const currentScrollDelta = isWheel ? -event.deltaY : 0;
-
-    const deltaTime = currentScrollTime - lastScrollTime;
-    const deltaScroll = Math.abs(currentScrollDelta - lastScrollDelta);
-
-    const scrollSpeed = deltaScroll / deltaTime;
-
-    setLastScrollTime(currentScrollTime);
-    setLastScrollDelta(currentScrollDelta);
-
-    return { isWheel, scrollSpeed };
-  };
-
-  const handleMove = (event: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement> | React.WheelEvent<HTMLDivElement>) => {
-    const { isWheel, scrollSpeed } = getScrollSpeed(event);
-
-    let nextTouchY = isTouchEvent(event) ?
+  const handleMove = (event: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
+    const nextTouchY = isTouchEvent(event) ?
       event.targetTouches[0].pageY :
-      isWheel ? -(event as React.WheelEvent<HTMLDivElement>).deltaY * (scrollSpeed > 3 ? fastWheelMultiplier : 1) :
-        event.pageY;
+      event.pageY;
 
     const dir = nextTouchY - touchY.current;
     const nextTranslateY = translateY.current + dir;
     const direction = dir > 0 ? Direction.DOWN : Direction.UP;
 
     const date = dates[MIDDLE_INDEX];
-
-    if (date.getTime() < min.getTime() || date.getTime() > max.getTime()) {
+    if (date.getTime() < min.getTime() ||
+      date.getTime() > max.getTime()) {
       return;
     }
 
@@ -191,6 +171,32 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     handleStart(event);
   };
 
+  const handleWheel: React.WheelEventHandler<HTMLDivElement> = (event) => {
+    if (isAnimating) return;
+
+    if (!wheelMoveTimer.current) {
+      handleStart(event);
+    } else {
+      clearTimeout(wheelMoveTimer.current);
+    }
+    wheelMoveTimer.current = setTimeout(() => {
+      handleEnd(event);
+    }, WHEEL_STOP_TIMEOUT_MS);
+
+
+    // Adjust deltaY to make it more smooth
+    const deltaY = Math.min(scrollSpeedLimit, Math.abs(event.deltaY)) * Math.sign(event.deltaY);
+    const nextTranslateY = stateTranslateY + (deltaY * scrollSpeedFactor);
+
+    const direction = deltaY > 0 ? Direction.DOWN : Direction.UP;
+    if (checkIsUpdateDates(direction, nextTranslateY)) {
+      moveDateCount.current += direction === Direction.UP ? 1 : -1;
+      updateDates(direction);
+    }
+
+    setStateTranslateY(nextTranslateY);
+  };
+
   useEffect(() => {
     if (mouseDown) {
       document.addEventListener('mousemove', handleContentMouseMove);
@@ -202,27 +208,6 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     }
   }, [mouseDown, handleContentMouseMove, handleContentMouseUp]);
 
-  const onWheel = useCallback((e) => {
-    const date = dates[MIDDLE_INDEX];
-    if (date.getTime() < min.getTime() || date.getTime() > max.getTime()) {
-      if (date.getTime() < min.getTime())
-        moveToNext(Direction.UP);
-      else
-        moveToNext(Direction.DOWN);
-      // moveTo(e.deltaY < 0 ? --currentIndex.current : ++currentIndex.current, true);
-      // return;
-    } else {
-      handleContentMouseDown(e);
-      handleMove(e);
-      handleContentMouseUp(e as any);
-      // --currentIndex.current;
-      // moveToNext(e.deltaY > 0 ? Direction.DOWN : Direction.UP, true);
-
-      //fix 2 scroll per row
-      moveTo(e.deltaY > 0 ? --currentIndex.current : ++currentIndex.current);
-    }
-  }, [dates]);
-
   const renderDatepickerItem = useCallback((date: Date, index: number) => {
     const className =
       (date < min || date > max) ?
@@ -233,10 +218,9 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     return (
       <li
         key={`${index}`}
-        className={className}
-      >
+        className={className}>
         {formatDate}
-      </li >
+      </li>
     );
   }, [min, max, format]);
 
@@ -253,7 +237,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
         onTouchMove={handleContentTouch}
         onTouchEnd={handleContentTouch}
         onMouseDown={handleContentMouseDown}
-        onWheel={onWheel}
+        onWheel={handleWheel}
       >
         <div className='datepicker-wheel'>
           <div
@@ -264,7 +248,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
           </div>
         </div>
       </div>
-    </div >
+    </div>
   );
 };
 

@@ -27,6 +27,8 @@ export interface DatePickerProps {
   onChange?: Function,
   onSelect?: Function,
   onCancel?: React.MouseEventHandler<HTMLButtonElement | HTMLDivElement>,
+  scrollSpeedFactor?: number,
+  scrollSpeedLimit?: number,
 }
 
 const normalizeDateConfig = (dateConfig: Required<DatePickerProps>['dateConfig']) => {
@@ -89,6 +91,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
   onSelect,
   onChange,
   onCancel,
+  scrollSpeedFactor,
+  scrollSpeedLimit,
 }) => {
   const [value, setValue] = useState(nextDate(propsValue));
   useEffect(() => {
@@ -148,7 +152,10 @@ const DatePicker: React.FC<DatePickerProps> = ({
             step={item.step}
             type={item.type}
             format={item.format}
-            onSelect={handleDateSelect} />
+            onSelect={handleDateSelect}
+            scrollSpeedFactor={scrollSpeedFactor}
+            scrollSpeedLimit={scrollSpeedLimit}
+          />
         ))}
       </div>
       {showFooter && (

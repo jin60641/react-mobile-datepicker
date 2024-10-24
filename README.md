@@ -266,6 +266,8 @@ ReactDOM.render(<App />, document.getElementById('root'));
 | onSelect | Function | () => {} | the callback function after click button of done, Date object as a parameter |
 | onCancel | Function | () => {} | the callback function after click button of cancel |
 | onChange | Function | () => {} | the callback function after date be changed |
+| scrollSpeedFactor | number | 1 | the factor that affect wheel scroll speed  |
+| scrollSpeedLimit | number | DEFAULT_DATE_HEIGHT | the factor that maximum amount of scrolling (If not to changed the css, I recommend keeping the default settings.) |
 
 
 ## DateConfig
