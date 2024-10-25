@@ -208,7 +208,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     }
   }, [mouseDown, handleContentMouseMove, handleContentMouseUp]);
 
-  const renderDatepickerItem = useCallback((date: Date, index: number) => {
+  const renderDatePickerItem = useCallback((date: Date, index: number) => {
     const className =
       (date < min || date > max) ?
         'disabled' : '';
@@ -244,7 +244,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
             className={`datepicker-scroll ${isAnimating ? 'active' : ''}`}
             style={scrollStyle}
           >
-            {dates.map(renderDatepickerItem)}
+            {dates.map(renderDatePickerItem)}
           </div>
         </div>
       </div>
