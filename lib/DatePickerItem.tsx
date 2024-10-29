@@ -34,9 +34,10 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
   const currentIndex = useRef(MIDDLE_INDEX);
   const moveDateCount = useRef(0);
   const [mouseDown, setMouseDown] = useState(false);
+  const mouseMoved = useRef(false);
   const moveToTimer = useRef<ReturnType<typeof setTimeout> | void>();
   const [stateTranslateY, setStateTranslateY] = useState(MIDDLE_Y);
-  const [dates, setDates] = useState(iniDates({ step, type, value }));
+  const dates = useRef(iniDates({ step, type, value }));
   const wheelMoveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [marginTop, setMarginTop] = useState(0);
@@ -49,27 +50,42 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
 
   useEffect(() => {
     currentIndex.current = MIDDLE_INDEX;
+    console.log('set MIDDLE_INDEX');
     setStateTranslateY(MIDDLE_Y);
     setMarginTop(0);
-    setDates(iniDates({ step, type, value }));
+    dates.current = iniDates({ step, type, value });
   }, [step, type, value]);
 
-  const updateDates = (direction: Direction) => {
+  const updateDates = (direction: Direction, additionalStep: number = 0) => {
+    const movingStep = step + additionalStep;
     if (direction === Direction.UP) {
-      currentIndex.current++;
-      setDates(
+      currentIndex.current += movingStep;
+      const newDates = Array(...Array(movingStep)).map((_, index) => nextMap[type](dates.current[dates.current.length - 1], index + 1));
+      dates.current =
         [
-          ...dates.slice(1),
-          nextMap[type](dates[dates.length - 1], step),
-        ]);
+          ...dates.current.slice(movingStep),
+          ...newDates,
+        ];
+
+      const newnew =
+        [
+          ...dates.current.slice(movingStep),
+          ...newDates,
+        ];
+
     } else {
-      currentIndex.current--;
-      setDates(
+      currentIndex.current -= movingStep;
+      const newDates = Array(...Array(movingStep)).map((_, index) => nextMap[type](dates.current[0], -(index + 1))).reverse();
+      dates.current =
         [
-          nextMap[type](dates[0], -step),
-          ...dates.slice(0, dates.length - 1),
-        ],
-      );
+          ...newDates,
+          ...dates.current.slice(0, dates.current.length - movingStep),
+        ];
+
+      const newnew = [
+        ...newDates,
+        ...dates.current.slice(0, dates.current.length - movingStep),
+      ];
     }
     setMarginTop((currentIndex.current - MIDDLE_INDEX) * DATE_HEIGHT);
   };
@@ -87,12 +103,12 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     // NOTE: There is no transitionend, setTimeout is used instead.
     moveToTimer.current = setTimeout(() => {
       setIsAnimating(false);
-      onSelect(dates[MIDDLE_INDEX]);
+      onSelect(dates.current[MIDDLE_INDEX]);
     }, 200);
   };
 
   const moveToNext = (direction: Direction) => {
-    const date = dates[MIDDLE_INDEX];
+    const date = dates.current[MIDDLE_INDEX];
     if (direction === Direction.UP && date.getTime() < min.getTime() && moveDateCount.current) {
       updateDates(Direction.UP);
     } else if (direction === Direction.DOWN && date.getTime() > max.getTime() && moveDateCount.current) {
@@ -102,7 +118,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     moveTo(currentIndex.current);
   };
 
-  const handleStart = (event: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
+  const handleStart = (event: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement | HTMLLIElement>) => {
     touchY.current = isTouchEvent(event) ?
       event.targetTouches[0].pageY :
       event.pageY;
@@ -120,7 +136,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     const nextTranslateY = translateY.current + dir;
     const direction = dir > 0 ? Direction.DOWN : Direction.UP;
 
-    const date = dates[MIDDLE_INDEX];
+    const date = dates.current[MIDDLE_INDEX];
     if (date.getTime() < min.getTime() ||
       date.getTime() > max.getTime()) {
       return;
@@ -133,7 +149,8 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
 
     setStateTranslateY(nextTranslateY);
   };
-  const handleEnd = (event: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement> | React.WheelEvent<HTMLDivElement>) => {
+
+  const handleEnd = (event: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement | HTMLLIElement> | React.WheelEvent<HTMLDivElement>) => {
     const isWheel = isWheelEvent(event);
     const nextTouchY = isTouchEvent(event) ? event.changedTouches[0].pageY : isWheel ? event.deltaY : event.pageY;
     const direction = (nextTouchY - touchY.current) > 0 ? Direction.UP : Direction.DOWN;
@@ -155,13 +172,17 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
 
   const handleContentMouseMove: EventListener = (event) => {
     if (isAnimating) return;
+    mouseMoved.current = true;
     handleMove(event as any);
   };
 
   const handleContentMouseUp: EventListener = (event) => {
     if (isAnimating) return;
     setMouseDown(false);
-    handleEnd(event as any);
+    if (mouseMoved.current) {
+      handleEnd(event as any);
+    }
+    mouseMoved.current = false;
   };
 
   const handleContentMouseDown: React.MouseEventHandler<HTMLDivElement> = (event) => {
@@ -197,6 +218,22 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     setStateTranslateY(nextTranslateY);
   };
 
+  const handleDateClick = (event: React.MouseEvent<HTMLLIElement>, index: number) => {
+    if (isAnimating || index === MIDDLE_INDEX) return;
+    handleStart(event);
+
+    const stepDiff = index - MIDDLE_INDEX;
+    const direction = stepDiff > 0 ? Direction.UP : Direction.DOWN;
+    const diff = stepDiff * DATE_HEIGHT * -1;
+    const nextTranslateY = stateTranslateY + diff;
+
+
+    moveDateCount.current += stepDiff;
+    updateDates(direction, Math.abs(stepDiff) - 1);
+
+    handleEnd(event);
+  };
+
   useEffect(() => {
     if (mouseDown) {
       document.addEventListener('mousemove', handleContentMouseMove);
@@ -218,7 +255,9 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     return (
       <li
         key={`${index}`}
-        className={className}>
+        className={className}
+        onClick={(event) => handleDateClick(event, index)}
+      >
         {formatDate}
       </li>
     );
@@ -244,7 +283,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
             className={`datepicker-scroll ${isAnimating ? 'active' : ''}`}
             style={scrollStyle}
           >
-            {dates.map(renderDatePickerItem)}
+            {dates.current.map(renderDatePickerItem)}
           </div>
         </div>
       </div>
