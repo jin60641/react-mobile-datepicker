@@ -159,7 +159,6 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
   };
 
   const handleContentTouch: React.TouchEventHandler<HTMLDivElement> = (event) => {
-    event.preventDefault();
     if (isAnimating) return;
     if (event.type === 'touchstart') {
       handleStart(event);
