@@ -1,6 +1,6 @@
 {
   "name": "react-mobile-datepicker-ts",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "types": "dist",
   "description": "react based date picker like native",
   "module": "dist/index.js",

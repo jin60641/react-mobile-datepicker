@@ -20,5 +20,5 @@
     "stripInternal": true,
     "outDir": "./dist"
   },
-  "include": ["./lib/**/*.ts*", "./examples/**/*.ts*"]
+  "include": ["./lib/**/*.ts*"]
 }
