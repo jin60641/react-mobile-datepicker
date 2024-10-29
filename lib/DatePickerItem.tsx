@@ -5,6 +5,7 @@ import React, {
 import { DatePickerItemProps, Direction } from './types';
 import { isFunction, isTouchEvent, isWheelEvent } from './utils';
 import { convertDate, nextMap } from './utils/time';
+import { useStateRef } from './utils/useStateRef';
 
 const DATE_HEIGHT = 40;
 const DATE_LENGTH = 10;
@@ -36,7 +37,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
   const [mouseDown, setMouseDown] = useState(false);
   const moveToTimer = useRef<ReturnType<typeof setTimeout> | void>();
   const [stateTranslateY, setStateTranslateY] = useState(MIDDLE_Y);
-  const dates = useRef(iniDates({ step, type, value }));
+  const [datesState, setDates, datesRef] = useStateRef(iniDates({ step, type, value }));
   const wheelMoveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [marginTop, setMarginTop] = useState(0);
@@ -49,30 +50,29 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
 
   useEffect(() => {
     currentIndex.current = MIDDLE_INDEX;
-    console.log('set MIDDLE_INDEX');
     setStateTranslateY(MIDDLE_Y);
     setMarginTop(0);
-    dates.current = iniDates({ step, type, value });
+    setDates(iniDates({ step, type, value }));
   }, [step, type, value]);
 
   const updateDates = (direction: Direction, additionalStep: number = 0) => {
     const movingStep = step + additionalStep;
     if (direction === Direction.UP) {
       currentIndex.current += movingStep;
-      const newDates = Array(...Array(movingStep)).map((_, index) => nextMap[type](dates.current[dates.current.length - 1], index + 1));
-      dates.current =
+      const newDates = Array(...Array(movingStep)).map((_, index) => nextMap[type](datesRef.current[datesRef.current.length - 1], index + 1));
+      setDates(
         [
-          ...dates.current.slice(movingStep),
+          ...datesRef.current.slice(movingStep),
           ...newDates,
-        ];
+        ]);
     } else {
       currentIndex.current -= movingStep;
-      const newDates = Array(...Array(movingStep)).map((_, index) => nextMap[type](dates.current[0], -(index + 1))).reverse();
-      dates.current =
+      const newDates = Array(...Array(movingStep)).map((_, index) => nextMap[type](datesRef.current[0], -(index + 1))).reverse();
+      setDates(
         [
           ...newDates,
-          ...dates.current.slice(0, dates.current.length - movingStep),
-        ];
+          ...datesRef.current.slice(0, datesRef.current.length - movingStep),
+        ]);
     }
     setMarginTop((currentIndex.current - MIDDLE_INDEX) * DATE_HEIGHT);
   };
@@ -90,12 +90,12 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     // NOTE: There is no transitionend, setTimeout is used instead.
     moveToTimer.current = setTimeout(() => {
       setIsAnimating(false);
-      onSelect(dates.current[MIDDLE_INDEX]);
+      onSelect(datesRef.current[MIDDLE_INDEX]);
     }, 200);
   };
 
   const moveToNext = (direction: Direction) => {
-    const date = dates.current[MIDDLE_INDEX];
+    const date = datesRef.current[MIDDLE_INDEX];
     if (direction === Direction.UP && date.getTime() < min.getTime() && moveDateCount.current) {
       updateDates(Direction.UP);
     } else if (direction === Direction.DOWN && date.getTime() > max.getTime() && moveDateCount.current) {
@@ -123,7 +123,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
     const nextTranslateY = translateY.current + dir;
     const direction = dir > 0 ? Direction.DOWN : Direction.UP;
 
-    const date = dates.current[MIDDLE_INDEX];
+    const date = datesRef.current[MIDDLE_INDEX];
     if (date.getTime() < min.getTime() ||
       date.getTime() > max.getTime()) {
       return;
@@ -206,10 +206,9 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
 
     const stepDiff = index - MIDDLE_INDEX;
     const direction = stepDiff > 0 ? Direction.UP : Direction.DOWN;
-
     moveDateCount.current += stepDiff;
-    updateDates(direction, Math.abs(stepDiff) - 1);
 
+    updateDates(direction, Math.abs(stepDiff) - 1);
     handleEnd(event);
   };
 
@@ -262,7 +261,7 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
             className={`datepicker-scroll ${isAnimating ? 'active' : ''}`}
             style={scrollStyle}
           >
-            {dates.current.map(renderDatePickerItem)}
+            {datesState.map(renderDatePickerItem)}
           </div>
         </div>
       </div>
