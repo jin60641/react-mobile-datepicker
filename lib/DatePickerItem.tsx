@@ -66,13 +66,6 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
           ...dates.current.slice(movingStep),
           ...newDates,
         ];
-
-      const newnew =
-        [
-          ...dates.current.slice(movingStep),
-          ...newDates,
-        ];
-
     } else {
       currentIndex.current -= movingStep;
       const newDates = Array(...Array(movingStep)).map((_, index) => nextMap[type](dates.current[0], -(index + 1))).reverse();
@@ -81,11 +74,6 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
           ...newDates,
           ...dates.current.slice(0, dates.current.length - movingStep),
         ];
-
-      const newnew = [
-        ...newDates,
-        ...dates.current.slice(0, dates.current.length - movingStep),
-      ];
     }
     setMarginTop((currentIndex.current - MIDDLE_INDEX) * DATE_HEIGHT);
   };
@@ -223,9 +211,6 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
 
     const stepDiff = index - MIDDLE_INDEX;
     const direction = stepDiff > 0 ? Direction.UP : Direction.DOWN;
-    const diff = stepDiff * DATE_HEIGHT * -1;
-    const nextTranslateY = stateTranslateY + diff;
-
 
     moveDateCount.current += stepDiff;
     updateDates(direction, Math.abs(stepDiff) - 1);
