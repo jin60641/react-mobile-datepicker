@@ -34,7 +34,6 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
   const currentIndex = useRef(MIDDLE_INDEX);
   const moveDateCount = useRef(0);
   const [mouseDown, setMouseDown] = useState(false);
-  const mouseMoved = useRef(false);
   const moveToTimer = useRef<ReturnType<typeof setTimeout> | void>();
   const [stateTranslateY, setStateTranslateY] = useState(MIDDLE_Y);
   const dates = useRef(iniDates({ step, type, value }));
@@ -159,17 +158,13 @@ const DatePickerItem: FC<DatePickerItemProps> = ({
 
   const handleContentMouseMove: EventListener = (event) => {
     if (isAnimating) return;
-    mouseMoved.current = true;
     handleMove(event as any);
   };
 
   const handleContentMouseUp: EventListener = (event) => {
     if (isAnimating) return;
     setMouseDown(false);
-    if (mouseMoved.current) {
-      handleEnd(event as any);
-    }
-    mouseMoved.current = false;
+    handleEnd(event as any);
   };
 
   const handleContentMouseDown: React.MouseEventHandler<HTMLDivElement> = (event) => {
